@@ -1,0 +1,341 @@
+{
+  "name": "Auto Posting Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "574ed43f-37b9-42e2-94dc-753b73cb769c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XFLVxWrdQ3gpGbzu_D5QmVHmQJz74YhHsCGDeE9pxhw",
+          "mode": "list",
+          "cachedResultName": "Salinan dari Auto Posting Scheduler",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XFLVxWrdQ3gpGbzu_D5QmVHmQJz74YhHsCGDeE9pxhw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XFLVxWrdQ3gpGbzu_D5QmVHmQJz74YhHsCGDeE9pxhw/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "7e986e49-eb3a-4084-bdbc-f0f2bfd36c3e",
+      "name": "Get Rows",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OUbsYcpRZsIRoHck",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5946cc7e-8f39-4bf9-8938-3080ef3e72f1",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Pending",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "id": "1f9dee19-3bcb-48a9-868a-0f4f009d47b4",
+      "name": "Filter Pending"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sekarang = DateTime.now().setZone('Asia/Jakarta');\nconst formatWaktu = ['d/M/yyyy H:mm:ss', 'd/M/yyyy H:mm', 'yyyy-MM-dd H:mm:ss'];\nconst hasil = [];\n\nfor (const item of $input.all()) {\n  const data = item.json;\n  const teks = `${data['Scheduled Date']} ${data['Scheduled Time']}`.trim();\n\n  let jadwal = null;\n  for (const f of formatWaktu) {\n    const dt = DateTime.fromFormat(teks, f, { zone: 'Asia/Jakarta' });\n    if (dt.isValid) { jadwal = dt; break; }\n  }\n  if (!jadwal) continue; // format waktu tidak dikenali\n\n  if (sekarang >= jadwal) { // jadwal sudah terlewati\n    hasil.push({ json: { ...data, scheduledAt: jadwal.toISO() } });\n  }\n}\nreturn hasil;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "04e74b12-b584-4c41-a21f-ecb3505bb00a",
+      "name": "Validasi Jadwal"
+    },
+    {
+      "parameters": {
+        "chatId": "6537058766",
+        "text": "={{ $json.Content }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        0
+      ],
+      "id": "3d8716ef-b54b-4da4-8ca6-cd1d79bf7175",
+      "name": "Send Telegram",
+      "webhookId": "206d7d74-dbf9-492a-a57d-c6480ca33477",
+      "credentials": {
+        "telegramApi": {
+          "id": "gDi1bjmVlkMonp3k",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "73a8904a-14fd-4c3a-8ed7-4f87e2e6dcb5",
+              "name": "row_number",
+              "value": "={{ $('Validasi Jadwal').item.json.row_number }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "c1d9a5d4-efac-4c9b-bbc8-c66ed64f5bb6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1XFLVxWrdQ3gpGbzu_D5QmVHmQJz74YhHsCGDeE9pxhw",
+          "mode": "list",
+          "cachedResultName": "Salinan dari Auto Posting Scheduler",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XFLVxWrdQ3gpGbzu_D5QmVHmQJz74YhHsCGDeE9pxhw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XFLVxWrdQ3gpGbzu_D5QmVHmQJz74YhHsCGDeE9pxhw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Published",
+            "row_number": "={{ $json.row_number }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Content",
+              "displayName": "Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Scheduled Date",
+              "displayName": "Scheduled Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Scheduled Time",
+              "displayName": "Scheduled Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1248,
+        0
+      ],
+      "id": "9e0ce65c-208c-4d3f-b4b7-e2f3654e21dc",
+      "name": "Update Status",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OUbsYcpRZsIRoHck",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Rows": {
+      "main": [
+        [
+          {
+            "node": "Filter Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Pending": {
+      "main": [
+        [
+          {
+            "node": "Validasi Jadwal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validasi Jadwal": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "511d5363-5cc1-489e-8ee4-86ba378cc765",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "Uf3fSIqQhcdghj3Q",
+  "tags": []
+}
